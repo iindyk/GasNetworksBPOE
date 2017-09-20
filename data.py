@@ -71,9 +71,8 @@ Nt = 48                               # number of temporal grid points
 TIME = np.arange(1, Nt+1)             # set of temporal grid points
 TIMEm = np.arange(1, Nt)              # set of temporal grid points minus 1
 Nx = 10                               # number of spatial grid points
-DIS = np.arange(1, Nx)                # set of spatial grid points
+DIS = np.arange(1, Nx+1)              # set of spatial grid points
 S = 3                                 # number of scenarios
-SCEN = np.arange(1, S)                # scenario set
 lambd = 0.9                           # trade-off exp value and cvar
 dt = TF/Nt                            # temporal grid spacing - [s]
 dx = llength/(Nx-1)                   # spatial grid spacing - [m]
@@ -83,3 +82,6 @@ ce = 0.1         # cost of compression [$/kWh]
 cd = 1e6         # demand tracking cost [-]
 cT = 1e6         # terminal constraint cost [-]
 cs = 0           # supply cost [$/scmx10-4]
+
+# stochastic demand
+stochd = np.ones((S, n_dem, Nt))  # todo
