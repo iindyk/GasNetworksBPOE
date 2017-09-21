@@ -135,9 +135,12 @@ def avg_cost(x):
 # equality constraints
 def eq_constr(x):
     ret = []
+    p, dp, fin, fout, s, dem, pw, slack, px, fx = parse_x(x)
     # node balances
     for k in range(S):
         for i in range(n_nodes):
             for t in range(Nt):
-                ret.append()
+                ret.append((s[k, i, t] if i == 0 else fout[k, i-1, t]) -
+                           (dem[k, i, t] if i == n_nodes-1 else fin[k, i, t]))
+    # flow equations for passive and active links
 
