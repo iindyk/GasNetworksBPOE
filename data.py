@@ -70,6 +70,7 @@ TF = 24*3600                          # horizon time - [s]
 Nt = 48                               # number of temporal grid points
 TIME = np.arange(1, Nt+1)             # set of temporal grid points
 TIMEm = np.arange(1, Nt)              # set of temporal grid points minus 1
+TDEC = 20                             # decision time step
 Nx = 10                               # number of spatial grid points
 DIS = np.arange(1, Nx+1)              # set of spatial grid points
 S = 3                                 # number of scenarios

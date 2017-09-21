@@ -143,4 +143,72 @@ def eq_constr(x):
                 ret.append((s[k, i, t] if i == 0 else fout[k, i-1, t]) -
                            (dem[k, i, t] if i == n_nodes-1 else fin[k, i, t]))
     # flow equations for passive and active links
+    for j in range(S):
+        for i in range(n_links):
+            for t in range(Nt-1):
+                for k in range(Nx-1):
+                    ret.append((px[j, i, t+1, k]-px[j, i, t, k])/dt +
+                               c1[i]*(fx[j, i, t+1, k+1]-fx[j, i, t+1, k])/(dx[i]))
+    # boundary conditions flow
+    for j in range(S):
+        for i in range(n_links):
+            for t in range(Nt):
+                ret.append(fx[j, i, t, 1]-fin[j, i, t])
+                ret.append(fx[j, i, t, Nx]-fout[j, i, t])
+    # pressure equations for passive and active links
+    for j in range(S):
+        for i in range(n_links):
+            for t in range(Nt-1):
+                for k in range(Nx-1):
+                    ret.append(-(fx[j, i, t+1, k]-fx[j, i, t, k])/dt
+                               - c2[i]*(px[j, i, t+1, k+1]-px[j, i, t+1, k])/dx[i] - slack[j, i, t+1, k])
+    # slack equations
+    for j in range(S):
+        for i in range(n_links):
+            for t in range(Nt-1):
+                for k in range(Nx):
+                    ret.append(slack[j, i, t, k]*px[j, i, t, k] - c3[i]*fx[j, i, t, k]*fx[j, i, t, k])
+    # boundary conditions pressure, passive links
+    for j in range(S):
+        for t in range(Nt):
+            ret.append(px[j, 0, t, 1] - p[j, 0, t])
+            ret.append(px[j, n_links-1, t, 1] - p[j, n_links-1, t])
+            ret.append(px[j, 0, t, Nx] - p[j, 1, t])
+            ret.append(px[j, n_links-1, t, Nx] - p[j, n_links, t])
+    # boundary conditions, active links
+    for j in range(S):
+        for i in range(n_links-2):
+            for t in range(Nt):
+                ret.append(-px[j, i+1, t, 1]+p[j, i+1, t]+dp[j, i, t])
+                ret.append(px[j, i+1, t, Nx]-p[j, i+2, t])
+    # fix pressure at supply nodes
+    for k in range(S):
+        for t in range(Nt):
+            ret.append(p[k, 0, t] - pmin[0])
+    # non-anticipativity constraints
+    for j in range(S):
+        for i in range(n_links-2):
+            for t in range(TDEC):
+                ret.append(dp[j, i, t] - dp[1, i, t])
+    for j in range(S):
+        for t in range(TDEC):
+            ret.append(dem[j, 0, t] - dem[1, 0, t])
+    # ss constraints
+    for j in range(S):
+        for i in range(n_links):
+            for k in range(Nx-1):
+                ret.append(fx[j, i, 0, k+1]-fx[j, i, 0, k])
+                ret.append(- c2[i]*(px[j, i, 0, k+1]-px[j, i, 0, k])/dx[i] - slack[j, i, 0, k])
+    return np.array(ret)
 
+
+# inequality constraints
+def ineq_constr(x):
+    p, dp, fin, fout, s, dem, pw, slack, px, fx = parse_x(x)
+    ret = []
+    # discharge pressure for compressors
+    for j in range(S):
+        for i in range(n_links - 2):
+            for t in range(Nt):
+                ret.append(pmax[i+1] - p[j, i+1, t] - dp[j, i, t])
+    return np.array(ret)
