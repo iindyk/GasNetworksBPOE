@@ -140,8 +140,8 @@ def eq_constr(x):
     for k in range(S):
         for i in range(n_nodes):
             for t in range(Nt):
-                ret.append((s[k, i, t] if i == 0 else fout[k, i-1, t]) -
-                           (dem[k, i, t] if i == n_nodes-1 else fin[k, i, t]))
+                ret.append((s[k, 0, t] if i == 0 else fout[k, i-1, t]) -
+                           (dem[k, 0, t] if i == n_nodes-1 else fin[k, i, t]))
     # flow equations for passive and active links
     for j in range(S):
         for i in range(n_links):
