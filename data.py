@@ -2,7 +2,7 @@ import numpy as np
 
 
 # link data
-n_links = 12
+n_links = 5#12
 LINK = np.array(['l1','l2','l3','l4','l5','l6','l7','l8','l9','l10','l11','l12'])
 lstartloc = np.array(['n1','n2','n3','n4','n5','n6','n7','n8','n9','n10','n11','n12'])
 lendloc = np.array(['n2','n3','n4','n5','n6','n7','n8','n9','n10','n11','n12','n13'])
@@ -11,7 +11,7 @@ llength = np.array([300.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.
 ltype = np.array(['p','a','a','a','a','a','a','a','a','a','a','p'])
 
 # node data
-n_nodes = 13
+n_nodes = 6#13
 NODE = np.array(['n1','n2','n3','n4','n5','n6','n7','n8','n9','n10','n11','n12','n13'])
 pmin = np.array([57.0, 34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 34.0, 39.0])
 pmax = np.array([70.0, 70.0, 70.0, 70.0, 70.0, 70.0, 70.0, 70.0, 70.0, 70.0, 70.0, 70.0, 41.0])
@@ -67,10 +67,10 @@ c3 = np.array([A[i]*(pfac2/ffac2)*(8*lam[i]*nu2)/(np.pi*np.pi*(ldiam[i]**5)) for
 c4 = (1/ffac2)*(Cp*Tgas)
 
 TF = 24*3600                          # horizon time - [s]
-Nt = 48                               # number of temporal grid points
+Nt = 10#48                               # number of temporal grid points
 TIME = np.arange(1, Nt+1)             # set of temporal grid points
 TIMEm = np.arange(1, Nt)              # set of temporal grid points minus 1
-TDEC = 20                             # decision time step
+TDEC = 5#20                             # decision time step
 Nx = 10                               # number of spatial grid points
 DIS = np.arange(1, Nx+1)              # set of spatial grid points
 S = 3                                 # number of scenarios
