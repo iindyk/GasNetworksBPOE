@@ -153,8 +153,8 @@ def eq_constr(x):
     for j in range(S):
         for i in range(n_links):
             for t in range(Nt):
-                ret.append(fx[j, i, t, 1]-fin[j, i, t])
-                ret.append(fx[j, i, t, Nx]-fout[j, i, t])
+                ret.append(fx[j, i, t, 0]-fin[j, i, t])
+                ret.append(fx[j, i, t, Nx-1]-fout[j, i, t])
     # pressure equations for passive and active links
     for j in range(S):
         for i in range(n_links):
@@ -171,16 +171,16 @@ def eq_constr(x):
     # boundary conditions pressure, passive links
     for j in range(S):
         for t in range(Nt):
-            ret.append(px[j, 0, t, 1] - p[j, 0, t])
-            ret.append(px[j, n_links-1, t, 1] - p[j, n_links-1, t])
-            ret.append(px[j, 0, t, Nx] - p[j, 1, t])
-            ret.append(px[j, n_links-1, t, Nx] - p[j, n_links, t])
+            ret.append(px[j, 0, t, 0] - p[j, 0, t])
+            ret.append(px[j, n_links-1, t, 0] - p[j, n_links-1, t])
+            ret.append(px[j, 0, t, Nx-1] - p[j, 1, t])
+            ret.append(px[j, n_links-1, t, Nx-1] - p[j, n_links, t])
     # boundary conditions, active links
     for j in range(S):
         for i in range(n_links-2):
             for t in range(Nt):
-                ret.append(-px[j, i+1, t, 1]+p[j, i+1, t]+dp[j, i, t])
-                ret.append(px[j, i+1, t, Nx]-p[j, i+2, t])
+                ret.append(-px[j, i+1, t, 0]+p[j, i+1, t]+dp[j, i, t])
+                ret.append(px[j, i+1, t, Nx-1]-p[j, i+2, t])
     # fix pressure at supply nodes
     for k in range(S):
         for t in range(Nt):
