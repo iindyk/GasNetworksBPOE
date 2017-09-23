@@ -142,11 +142,12 @@ def compr_eq_jac(x):
     for j in range(S):
         for i in range(n_links-2):
             for t in range(Nt):
-                d_p[j, i+1, t]= (c4*fin[j, i+1, t]*om*((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**(om-1))/((p[j, i+1, t])**2)
-                d_dp[j, i, t] = -(c4*fin[j, i+1, t]*om*((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**(om-1))/p[j, i+1, t]
-                d_fin[j, i+1, t] = -c4*(((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**om - 1.0)
-                d_pw[j, i, t] = 1.0
-                ret[idx, :]=compose_x(p=d_p, dp=d_dp, fin=d_fin, pw=d_pw)
+                if abs(p[j, i+1, t]) > 1:
+                    d_p[j, i+1, t] = (c4*fin[j, i+1, t]*om*((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**(om-1))/((p[j, i+1, t])**2)
+                    d_dp[j, i, t] = -(c4*fin[j, i+1, t]*om*((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**(om-1))/p[j, i+1, t]
+                    d_fin[j, i+1, t] = -c4*(((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**om - 1.0)
+                    d_pw[j, i, t] = 1.0
+                ret[idx, :] = compose_x(p=d_p, dp=d_dp, fin=d_fin, pw=d_pw)
                 idx += 1
     return ret
 

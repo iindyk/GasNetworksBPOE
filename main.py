@@ -22,14 +22,28 @@ def eval_g(x):
     return np.append(np.append(eq_constr(x), compr_eq(x)), ineq_constr(x))
 
 
-def eval_jac_g(x):
-    return np.append(np.append(eq_constr_jac(x), compr_eq_jac(x), axis=0), ineq_constr_jac(x), axis=0)
+def eval_jac_g(x, flag):
+    ret = np.append(np.append(eq_constr_jac(x), compr_eq_jac(x), axis=0), ineq_constr_jac(x), axis=0)
+    if flag:
+        print('hi', np.sum(ret))
+        print('nnzrj', np.count_nonzero(ret))
+        return ret.flatten()
+    else:
+        print('warning', np.shape(np.trim_zeros(ret.flatten())))
+        return np.trim_zeros(ret.flatten())
 
-nnzj = np.count_nonzero(eval_jac_g(x0))
+
+nnzj = np.count_nonzero(eval_jac_g(x0, True))
+print(nnzj)
 g_L = np.zeros((len(eval_g(x0))))
 g_U = np.zeros_like(g_L)
 g_U[neq:] = 1e10
 nlp = pyipopt.create(nvar, x_L, x_U, ncon, g_L, g_U, nnzj, nnzh, avg_cost, avg_cost_grad, eval_g, eval_jac_g)
+
+
+nlp.num_option('bound_relax_factor', 0.1)
+nlp.str_option("mu_strategy", "adaptive")
+nlp.str_option("derivative_test", "first-order")
 print(datetime.datetime.now(), ": Going to call solve")
 x, zl, zu, constraint_multipliers, obj, status = nlp.solve(x0)
 nlp.close()
