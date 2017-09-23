@@ -30,6 +30,39 @@ def parse_x(x):
     return p, dp, fin, fout, s, dem, pw, slack, px, fx
 
 
+def compose_x(p=np.zeros((S, n_nodes, Nt)), dp=np.zeros((S, n_links-2, Nt)), fin=np.zeros((S, n_links, Nt)),
+              fout=np.zeros((S, n_links, Nt)), s=np.zeros((S, n_sup, Nt)), dem=np.zeros((S, n_dem, Nt)),
+              pw=np.zeros((S, n_links-2, Nt)), slack=np.zeros((S, n_links, Nt, Nx)),
+              px=np.zeros((S, n_links, Nt, Nx)), fx=np.zeros((S, n_links, Nt, Nx))):
+    x = np.zeros(S*Nt*(n_nodes+4*n_links-4+n_sup+n_dem+3*n_links*Nx))
+    # node pressure - [bar]
+    x[:S * n_nodes * Nt] = np.reshape(p, (S*n_nodes*Nt))
+    # compressor boost - [bar]
+    x[S * n_nodes * Nt:S * n_nodes * Nt + S * (n_links - 2) * Nt] = np.reshape(dp, (S*(n_links - 2)*Nt))
+    # flow in pipe - [scmx10-4/hr]
+    x[S * Nt * (n_nodes + n_links - 2):S * Nt * (n_nodes + 2 * n_links - 2)] = np.reshape(fin, (S*n_links*Nt))
+    # flow out pipe - [scmx10-4/hr]
+    x[S * Nt * (n_nodes + 2 * n_links - 2):S * Nt * (n_nodes + 3 * n_links - 2)] = np.reshape(fout, (S*n_links*Nt))
+    # supply flow - [scmx10-4/hr]
+    x[S * Nt * (n_nodes + 3 * n_links - 2):S * Nt * (n_nodes + 3 * n_links - 2 + n_sup)] = np.reshape(s, (S*n_sup*Nt))
+    # demand flow - [scmx10-4/hr]
+    x[S * Nt * (n_nodes + 3 * n_links - 2 + n_sup):S * Nt * (n_nodes + 3 * n_links - 2 + n_sup + n_dem)] = \
+        np.reshape(dem, (S*n_dem*Nt))
+    # compressor power [kW]
+    x[S * Nt * (n_nodes + 3 * n_links - 2 + n_sup + n_dem):S * Nt * (n_nodes + 4 * n_links - 4 + n_sup + n_dem)] = \
+        np.reshape(pw,(S*(n_links - 2)*Nt))
+    # auxiliary variable
+    x[S * Nt * (n_nodes + 4 * n_links - 4 + n_sup + n_dem):S * Nt * (n_nodes + 4 * n_links - 4 + n_sup + n_dem + n_links * Nx)]= \
+        np.reshape(slack, (S*n_links*Nt*Nx))
+    # link pressure profile - [bar]
+    x[S * Nt * (n_nodes + 4 * n_links - 4 + n_sup + n_dem + n_links * Nx):S * Nt * (n_nodes + 4 * n_links - 4 + n_sup + n_dem + 2 * n_links * Nx)] =\
+        np.reshape(px, (S*n_links*Nt*Nx))
+    # link flow profile - [scmx10-4/hr]
+    x[S * Nt * (n_nodes + 4 * n_links - 4 + n_sup + n_dem + 2 * n_links * Nx):S * Nt * (n_nodes + 4 * n_links - 4 + n_sup + n_dem + 3 * n_links * Nx)]=\
+        np.reshape(fx, (S*n_links*Nt*Nx))
+    return x
+
+
 def get_bounds_and_initialx():
     x0 = np.ones(S*Nt*(n_nodes+4*n_links-4+n_sup+n_dem+3*n_links*Nx))
     bnds = []
@@ -97,6 +130,31 @@ def compr_eq(x):
     return np.array(ret)
 
 
+# compressor equations jacobian
+def compr_eq_grad(x):
+    p, dp, fin, fout, s, dem, pw, slack, px, fx = parse_x(x)
+    ret = []
+    d_p = np.zeros_like(p)
+    d_dp = np.zeros_like(dp)
+    d_fin = np.zeros_like(fin)
+    d_fout = np.zeros_like(fout)
+    d_s = np.zeros_like(s)
+    d_dem = np.zeros_like(dem)
+    d_pw = np.zeros_like(pw)
+    d_slack = np.zeros_like(slack)
+    d_px = np.zeros_like(px)
+    d_fx = np.zeros_like(fx)
+    for j in range(S):
+        for i in range(n_links-2):
+            for t in range(Nt):
+                d_p[j, i+1, t]= (c4*fin[j, i+1, t]*om*((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**(om-1))/((p[j, i+1, t])**2)
+                d_dp[j, i, t] = -(c4*fin[j, i+1, t]*om*((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**(om-1))/p[j, i+1, t]
+                d_fin[j, i+1, t] = -c4*(((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**om - 1.0)
+                d_pw[j, i, t] = 1.0
+                ret.append(compose_x(d_p, d_dp, d_fin, d_fout, d_s, d_dem, d_pw, d_slack, d_px, d_fx))
+    return np.array(ret)
+
+
 # cost function
 def cost(x, k):
     assert k <= S
@@ -124,12 +182,51 @@ def cost(x, k):
     return 1e-6*(supcost+boostcost+trackcost+sspcost+ssfcost)
 
 
+# gradient of cost function
+def cost_grad(x, k):
+    assert k <= S
+    p, dp, fin, fout, s, dem, pw, slack, px, fx = parse_x(x)
+    d_s = np.zeros(np.shape(s))
+    for j in range(n_sup):
+        for t in range(Nt):
+            d_s[k, j, t] = 1e-6*cs*(dt/3600.0)
+    d_dem = np.zeros(np.shape(dem))
+    for j in range(n_dem):
+        for t in range(Nt):
+            d_dem[k, j, t] = 1e-6*2*cd*(dem[k, j, t] - stochd[k, j, t])
+    d_pw = np.zeros(np.shape(pw))
+    for j in range(n_links-2):
+        for t in range(Nt):
+            d_pw[k, j, t] = 1e-6*ce*(dt/3600.0)
+    d_px = np.zeros(np.shape(px))
+    for i in range(n_links):
+        for j in range(Nx):
+            d_px[k, i, Nt-1, j] = 1e-6*2*cT*(px[k, i, Nt-1, j] - px[k, i, 0, j])
+            d_px[k, i, 0, j] = -1e-6*2*cT*(px[k, i, Nt-1, j] - px[k, i, 0, j])
+    d_fx = np.zeros(np.shape(fx))
+    for i in range(n_links):
+        for j in range(Nx):
+            d_fx[k, i, Nt-1, j] = 1e-6*2*cT*(fx[k, i, Nt-1, j] - fx[k, i, 0, j])
+            d_fx[k, i, 0, j] = -1e-6*2*cT*(fx[k, i, Nt-1, j] - fx[k, i, 0, j])
+    d_x = compose_x(np.zeros_like(p), np.zeros_like(dp), np.zeros_like(fin), np.zeros_like(fout),
+                    d_s, d_dem, d_pw, np.zeros_like(slack), d_px, d_fx)
+    return d_x
+
+
 # average cost
 def avg_cost(x):
     ret = 0.0
     for k in range(S):
         ret += cost(x, k)
     return ret/S
+
+
+# gradient of average cost
+def avg_cost_grad(x):
+    ret = 0.0
+    for k in range(S):
+        ret += cost_grad(x, k)
+    return ret / S
 
 
 # equality constraints
@@ -200,6 +297,40 @@ def eq_constr(x):
                 ret.append(fx[j, i, 0, k+1]-fx[j, i, 0, k])
                 ret.append(- c2[i]*(px[j, i, 0, k+1]-px[j, i, 0, k])/dx[i] - slack[j, i, 0, k])
     return np.array(ret)
+
+
+# jacobian of equality constraints
+def eq_constr_jac(x):
+    n = len(eq_constr(x))
+    m = len(x)
+    ret = np.zeros((m, n))
+    p, _, _, _, _, _, _, slack, px, fx = parse_x(x)
+    for j in range(m):
+        x0 = np.zeros(m)
+        x0[j] = 1.0
+        ret[:, j] = eq_constr(x0)
+    # slack equations
+    idx = S*n_links*(2*Nt+2*(Nt-1)*(Nx-1))+S*n_nodes*Nt
+    for j in range(S):
+        for i in range(n_links):
+            for t in range(Nt - 1):
+                for k in range(Nx):
+                    d_slack = np.zeros(np.shape(slack))
+                    d_slack[j, i, t, k] = px[j, i, t, k]
+                    d_px = np.zeros(np.shape(px))
+                    d_px[j, i, t, k] = slack[j, i, t, k]
+                    d_fx = np.zeros(np.shape(fx))
+                    d_fx[j, i, t, k] = -2*c3[i]*fx[j, i, t, k]
+                    ret[idx, :] = compose_x(slack=d_slack, px=d_px, fx=d_fx)
+                    idx += 1
+    # fix pressure at supply nodes
+    idx += S*Nt*4+S*n_links*2
+    for k in range(S):
+        for t in range(Nt):
+            d_p = np.zeros(np.shape(p))
+            d_p[k, 0, t] = 1.0
+            ret[idx, :] = compose_x(p=d_p)
+    return ret
 
 
 # inequality constraints
