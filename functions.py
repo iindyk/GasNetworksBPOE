@@ -185,7 +185,7 @@ def cost(x, k):
 # gradient of cost function
 def cost_grad(x, k):
     assert k <= S
-    p, dp, fin, fout, s, dem, pw, slack, px, fx = parse_x(x)
+    _, _, _, _, s, dem, pw, _, px, fx = parse_x(x)
     d_s = np.zeros(np.shape(s))
     for j in range(n_sup):
         for t in range(Nt):
@@ -208,8 +208,7 @@ def cost_grad(x, k):
         for j in range(Nx):
             d_fx[k, i, Nt-1, j] = 1e-6*2*cT*(fx[k, i, Nt-1, j] - fx[k, i, 0, j])
             d_fx[k, i, 0, j] = -1e-6*2*cT*(fx[k, i, Nt-1, j] - fx[k, i, 0, j])
-    d_x = compose_x(np.zeros_like(p), np.zeros_like(dp), np.zeros_like(fin), np.zeros_like(fout),
-                    d_s, d_dem, d_pw, np.zeros_like(slack), d_px, d_fx)
+    d_x = compose_x(s=d_s, dem=d_dem, pw=d_pw, px=d_px, fx=d_fx)
     return d_x
 
 
@@ -335,7 +334,7 @@ def eq_constr_jac(x):
 
 # inequality constraints
 def ineq_constr(x):
-    p, dp, fin, fout, s, dem, pw, slack, px, fx = parse_x(x)
+    p, dp, _, _, _, _, _, _, _, _ = parse_x(x)
     ret = []
     # discharge pressure for compressors
     for j in range(S):
@@ -343,3 +342,20 @@ def ineq_constr(x):
             for t in range(Nt):
                 ret.append(pmax[i+1] - p[j, i+1, t] - dp[j, i, t])
     return np.array(ret)
+
+
+# inequality constraints jacobian
+def ineq_constr_jac(x):
+    p, dp, _, _, _, _, _, _, _, _ = parse_x(x)
+    ret = np.zeros((S*(n_links-2)*Nt, len(x)))
+    idx = 0
+    for j in range(S):
+        for i in range(n_links - 2):
+            for t in range(Nt):
+                d_p = np.zeros_like(p)
+                d_dp = np.zeros_like(dp)
+                d_p[j, i+1, t] = -1.0
+                d_dp[j, i, t] = -1.0
+                ret[idx, :] = compose_x(p=d_p, dp=d_dp)
+                idx += 1
+    return ret
