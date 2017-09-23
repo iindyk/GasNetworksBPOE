@@ -23,7 +23,7 @@ def eval_g(x):
 
 
 def eval_jac_g(x):
-    return np.append(np.append(eq_constr_jac(x), [compr_eq_grad(x)], axis=0), ineq_constr_jac(x), axis=0)
+    return np.append(np.append(eq_constr_jac(x), compr_eq_jac(x), axis=0), ineq_constr_jac(x), axis=0)
 
 nnzj = np.count_nonzero(eval_jac_g(x0))
 g_L = np.zeros((len(eval_g(x0))))

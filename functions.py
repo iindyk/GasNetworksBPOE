@@ -131,19 +131,14 @@ def compr_eq(x):
 
 
 # compressor equations jacobian
-def compr_eq_grad(x):
-    p, dp, fin, fout, s, dem, pw, slack, px, fx = parse_x(x)
-    ret = []
+def compr_eq_jac(x):
+    p, dp, fin, _, _, _, pw, _, _, _ = parse_x(x)
+    ret = np.zeros((S*(n_links-2)*Nt, len(x)))
     d_p = np.zeros_like(p)
     d_dp = np.zeros_like(dp)
     d_fin = np.zeros_like(fin)
-    d_fout = np.zeros_like(fout)
-    d_s = np.zeros_like(s)
-    d_dem = np.zeros_like(dem)
     d_pw = np.zeros_like(pw)
-    d_slack = np.zeros_like(slack)
-    d_px = np.zeros_like(px)
-    d_fx = np.zeros_like(fx)
+    idx = 0
     for j in range(S):
         for i in range(n_links-2):
             for t in range(Nt):
@@ -151,8 +146,9 @@ def compr_eq_grad(x):
                 d_dp[j, i, t] = -(c4*fin[j, i+1, t]*om*((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**(om-1))/p[j, i+1, t]
                 d_fin[j, i+1, t] = -c4*(((p[j, i+1, t]+dp[j, i, t])/p[j, i+1, t])**om - 1.0)
                 d_pw[j, i, t] = 1.0
-                ret.append(compose_x(d_p, d_dp, d_fin, d_fout, d_s, d_dem, d_pw, d_slack, d_px, d_fx))
-    return np.array(ret)
+                ret[idx, :]=compose_x(p=d_p, dp=d_dp, fin=d_fin, pw=d_pw)
+                idx += 1
+    return ret
 
 
 # cost function
@@ -302,7 +298,7 @@ def eq_constr(x):
 def eq_constr_jac(x):
     n = len(eq_constr(x))
     m = len(x)
-    ret = np.zeros((m, n))
+    ret = np.zeros((n, m))
     p, _, _, _, _, _, _, slack, px, fx = parse_x(x)
     for j in range(m):
         x0 = np.zeros(m)
