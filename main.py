@@ -44,6 +44,8 @@ nlp = pyipopt.create(nvar, x_L, x_U, ncon, g_L, g_U, nnzj, nnzh, avg_cost, avg_c
 nlp.num_option('bound_relax_factor', 0.1)
 nlp.str_option("mu_strategy", "adaptive")
 nlp.str_option("derivative_test", "first-order")
+nlp.str_option('warm_start_init_point', 'yes')
+nlp.str_option('linear_solver', 'mumps')
 print(datetime.datetime.now(), ": Going to call solve")
 x, zl, zu, constraint_multipliers, obj, status = nlp.solve(x0)
 nlp.close()

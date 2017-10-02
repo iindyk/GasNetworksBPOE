@@ -1,6 +1,8 @@
 #  contains all functions used for optimization
 import numpy as np
+from scipy.optimize import minimize
 from data import*
+from pynverse import inversefunc
 
 
 def parse_x(x):
@@ -356,3 +358,14 @@ def ineq_constr_jac(x):
                 ret[idx, :] = compose_x(p=d_p, dp=d_dp)
                 idx += 1
     return ret
+
+
+def cvar(x, alpha):
+    e = 0.0
+    f = lambda c: c +(1/(1-alpha))*sum([max(cost(x,k)-c,0) for k in range(S)])
+    sol = minimize(f, 0.0)
+    return sol.fun
+
+
+def bpoe(x, x_val):
+    return 1.0 - inversefunc(cvar, y_values=x_val)
