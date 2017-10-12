@@ -24,17 +24,19 @@ def eval_g(x):
 
 def eval_jac_g(x, flag):
     ret = np.append(np.append(eq_constr_jac(x), compr_eq_jac(x), axis=0), ineq_constr_jac(x), axis=0)
+    i_s = []
+    j_s = []
     if flag:
-        print('hi', np.sum(ret))
-        print('nnzrj', np.count_nonzero(ret))
-        return ret.flatten()
+        for i in range(len(x0)):
+            for j in range(len(ret)):
+                i_s.append(i)
+                j_s.append(j)
+        return (np.array(i_s), np.array(j_s))
     else:
-        print('warning', np.shape(np.trim_zeros(ret.flatten())))
-        return np.trim_zeros(ret.flatten())
+        return ret.flatten()
 
 
-nnzj = np.count_nonzero(eval_jac_g(x0, True))
-print(nnzj)
+nnzj = len(eval_jac_g(x0, False))
 g_L = np.zeros((len(eval_g(x0))))
 g_U = np.zeros_like(g_L)
 g_U[neq:] = 1e10

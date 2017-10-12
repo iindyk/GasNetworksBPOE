@@ -361,8 +361,7 @@ def ineq_constr_jac(x):
 
 
 def cvar(x, alpha):
-    e = 0.0
-    f = lambda c: c +(1/(1-alpha))*sum([max(cost(x,k)-c,0) for k in range(S)])
+    f = lambda c: c + (1.0/(1.0-alpha))*sum([max(cost(x, k)-c, 0) for k in range(S)])
     sol = minimize(f, 0.0)
     return sol.fun
 
